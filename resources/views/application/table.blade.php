@@ -10,13 +10,6 @@
             </span>
             <div class="grid row-gap-4">
                 <a href="{{ route('dashboard') }}" class="btn btn-danger">Back</a>
-                @if (Auth::user()->role == 'magang')
-                    <a href="{{route('application.add')}}">
-                        <button class="btn btn-primary">
-                            Add
-                        </button>
-                    </a>
-                @endif
             </div>
         </div>
         <div class="card-body">

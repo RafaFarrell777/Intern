@@ -22,7 +22,7 @@ class AuthController extends Controller
 
         if ($validator->fails()) {
             return redirect()
-                ->route('register')
+                ->route('auth.register')
                 ->withErrors($validator)
                 ->withInput($req->except('password'));
         }

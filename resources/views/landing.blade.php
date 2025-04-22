@@ -94,9 +94,11 @@
                                             </td>
                                             <td>
                                                 @if($program->status === 'active')
-                                                    <a href="{{ route('internship-programs.show', $program->id) }}" class="btn btn-sm btn-info">View Details</a>
+                                                    <a href="{{ route('program.show', $program->id) }}" class="btn btn-sm btn-info">View Details</a>
                                                     @if(!$program->hasApplied(auth()->id()))
-                                                        <a href="{{ route('internship-programs.apply', $program->id) }}" class="btn btn-sm btn-primary">Apply</a>
+                                                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal" data-program-id="{{ $program->id }}">
+                                                            Apply
+                                                        </button>
                                                     @else
                                                         <span class="badge badge-success">Applied</span>
                                                     @endif

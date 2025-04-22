@@ -43,11 +43,8 @@ class InternshipProgram extends Model
         return $this->hasMany(Evaluation::class, 'program_id');
     }
 
-    public function hasApplied($userId)
+    public function hasApplied($siswaId)
     {
-        return $this->applications()
-            ->where('siswa_id', $userId)
-            ->where('program_id', $this->id)
-            ->exists();
+        return $this->applications()->where('siswa_id', $siswaId)->exists();
     }
 }

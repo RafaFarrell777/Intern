@@ -15,7 +15,22 @@ class InternshipApplicationsController extends Controller
      */
     public function index()
     {
-        $applications = InternshipApplications::with(['siswa', 'program'])->latest()->paginate(10);
+        $query = InternshipApplications::with(['siswa', 'program']);
+
+        // Search by student name
+        if (request('search')) {
+            $query->whereHas('siswa', function($q) {
+                $q->where('name', 'like', '%' . request('search') . '%');
+            });
+        }
+
+        // Filter by status
+        if (request('status')) {
+            $query->where('status', request('status'));
+        }
+
+        $applications = $query->latest()->paginate(10);
+
         return view('application.index', compact('applications'));
     }
 
@@ -112,5 +127,28 @@ class InternshipApplicationsController extends Controller
         }
 
         return Storage::disk('public')->download($application->resume);
+    }
+
+    public function studentIndex()
+    {
+        $query = InternshipApplications::with(['program'])
+            ->where('siswa_id', auth()->id());
+
+        // Search by program name
+        if (request('search')) {
+            $query->whereHas('program', function($q) {
+                $q->where('title', 'like', '%' . request('search') . '%');
+            });
+        }
+
+        // Filter by status
+        if (request('status')) {
+            $query->where('status', request('status'));
+        }
+
+        $applications = $query->latest()->paginate(10);
+        $programs = InternshipProgram::where('status', 'active')->get();
+
+        return view('application.student-index', compact('applications', 'programs'));
     }
 }

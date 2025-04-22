@@ -5,11 +5,8 @@
 @section('content')
 <div class="container-fluid">
     <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">Internship Applications</h6>
-            <a href="{{ route('application.create') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus"></i> Add Application
-            </a>
         </div>
         <div class="card-body">
             @if(session('success'))
@@ -17,6 +14,31 @@
                     {{ session('success') }}
                 </div>
             @endif
+
+            <!-- Search and Filter Form -->
+            <form action="{{ route('application.index') }}" method="GET" class="mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <input type="text" name="search" class="form-control" placeholder="Search by student name..." value="{{ request('search') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <select name="status" class="form-control">
+                                <option value="">All Status</option>
+                                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="accepted" {{ request('status') == 'accepted' ? 'selected' : '' }}>Accepted</option>
+                                <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="{{ route('application.index') }}" class="btn btn-secondary">Reset</a>
+                    </div>
+                </div>
+            </form>
 
             <div class="table-responsive">
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">

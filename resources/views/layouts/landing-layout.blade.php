@@ -115,14 +115,27 @@
                             <a class="nav-link" href="{{ route('auth.register') }}">Register</a>
                         </li>
                     @else
-                        <li class="nav-item">
+                        <!-- <li class="nav-item">
                             <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <form action="{{ route('auth.logout') }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn btn-link nav-link">Logout</button>
-                            </form>
+                        </li> -->
+                        @if(auth()->check() && auth()->user()->role === 'magang')
+                            <!-- <li class="nav-item">
+                                <a class="nav-link" href="{{ route('application.student-index') }}">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>My Applications</span>
+                                </a>
+                            </li> -->
+                        @endif
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                {{ Auth::user()->name }}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                                <form action="{{ route('auth.logout') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item">Logout</button>
+                                </form>
+                            </div>
                         </li>
                     @endguest
                 </ul>
@@ -139,13 +152,7 @@
                 <a href="{{ route('auth.register') }}" class="btn btn-light btn-lg mr-3">Register</a>
                 <a href="{{ route('auth.login') }}" class="btn btn-primary btn-lg">Login</a>
             @else
-                @if(auth()->user()->role === 'magang')
-                    <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#applyModal">
-                        Apply Internship Programs
-                    </button>
-                @else
-                    <a href="{{ route('dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
-                @endif
+               <a href="{{ route('application.student-index') }}" class="btn btn-primary btn-lg">My Applications</a>
             @endguest
         </div>
     </section>
@@ -159,32 +166,85 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form action="{{ route('internship-programs.apply') }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <div class="mb-3">
-                            <label for="program_id" class="form-label">Select Program</label>
-                            <select class="form-select" id="program_id" name="program_id" required>
-                                <option value="">Choose a program...</option>
-                                @foreach($programs as $program)
-                                    @if($program->status === 'active' && !$program->hasApplied(auth()->id()))
-                                        <option value="{{ $program->id }}">{{ $program->title }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
+                    @auth
+                        @if(auth()->user()->role === 'magang')
+                            <form action="{{ route('internship-programs.apply') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <div class="mb-3">
+                                    <label for="program_id" class="form-label">Select Program</label>
+                                    <select class="form-select" id="program_id" name="program_id" required>
+                                        <option value="">Choose a program...</option>
+                                        @foreach($programs ?? [] as $program)
+                                            @if($program->status === 'active' && !$program->hasApplied(auth()->id()))
+                                                <option value="{{ $program->id }}">{{ $program->title }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="resume" class="form-label">Upload Resume (PDF only, max 2MB)</label>
+                                    <input type="file" class="form-control" id="resume" name="resume" accept=".pdf" required>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                                </div>
+                            </form>
+                        @else
+                            <div class="alert alert-warning">
+                                Only students can apply for internship programs.
+                            </div>
+                        @endif
+                    @else
+                        <div class="text-center">
+                            <p>Please login to apply for this program.</p>
+                            <a href="{{ route('auth.login') }}" class="btn btn-primary">Login</a>
+                            <a href="{{ route('auth.register') }}" class="btn btn-outline-primary">Register</a>
                         </div>
-                        <div class="mb-3">
-                            <label for="resume" class="form-label">Upload Resume (PDF only, max 2MB)</label>
-                            <input type="file" class="form-control" id="resume" name="resume" accept=".pdf" required>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Submit Application</button>
-                        </div>
-                    </form>
+                    @endauth
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Internship Programs Section -->
+    <section class="programs-section py-5" id="programs">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-heading">Available Internship Programs</h2>
+                <p class="lead">Explore our current internship opportunities</p>
+            </div>
+            <div class="row">
+                @foreach($programs as $program)
+                    @if($program->status === 'active')
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ $program->title }}</h5>
+                                    <p class="card-text">{{ Str::limit($program->description, 150) }}</p>
+                                    <ul class="list-unstyled">
+                                        <li><strong>Location:</strong> {{ $program->location }}</li>
+                                        <li><strong>Duration:</strong> {{ $program->start_date->format('M d, Y') }} - {{ $program->end_date->format('M d, Y') }}</li>
+                                        <li><strong>Max Participants:</strong> {{ $program->max_participants }}</li>
+                                    </ul>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <a href="{{ route('program.show', $program->id) }}" class="btn btn-primary btn-sm">View Details</a>
+                                    @auth
+                                        @if(auth()->user()->role === 'magang' && !$program->hasApplied(auth()->id()))
+                                            <!-- <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#applyModal" data-program-id="{{ $program->id }}">
+                                                Apply Now
+                                            </button> -->
+                                        @endif
+                                    @endauth
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    </section>
 
     <!-- About Section -->
     <section class="about-section" id="about">
@@ -481,8 +541,14 @@
 
     <!-- Custom scripts for all pages-->
     <script src="{{asset('js')}}/sb-admin-2.min.js"></script>
-    
-    <!-- Smooth scrolling script -->
+
+    <!-- Page level plugins -->
+    <script src="{{asset('vendor')}}/chart.js/Chart.min.js"></script>
+
+    <!-- Page level custom scripts -->
+    <script src="{{asset('js')}}/demo/chart-area-demo.js"></script>
+    <script src="{{asset('js')}}/demo/chart-pie-demo.js"></script>
+
     <script>
         // Smooth scrolling for nav links
         $(document).ready(function() {
@@ -503,6 +569,19 @@
             // Close navbar when clicking on nav item on mobile
             $('.navbar-nav>li>a').on('click', function(){
                 $('.navbar-collapse').collapse('hide');
+            });
+        });
+
+        // Handle program selection in modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const applyButtons = document.querySelectorAll('[data-bs-target="#applyModal"]');
+            const programSelect = document.getElementById('program_id');
+
+            applyButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const programId = this.getAttribute('data-program-id');
+                    programSelect.value = programId;
+                });
             });
         });
     </script>

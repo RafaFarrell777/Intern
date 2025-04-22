@@ -22,6 +22,13 @@ Route::get('/landing', function () {
     return view('landing', compact('programs'));
 })->name('landing');
 
+// Public program details route
+Route::get('/program/{program}', function ($program) {
+    $program = \App\Models\InternshipProgram::findOrFail($program);
+    $programs = \App\Models\InternshipProgram::where('status', 'active')->get();
+    return view('internship-programs.show', compact('program', 'programs'));
+})->name('program.show');
+
 // Protected routes
 Route::middleware(['auth'])->group(function () {
     // Admin routes (mentor only)
@@ -142,7 +149,7 @@ Route::middleware(['auth'])->group(function () {
                 }
                 return app(UserController::class)->destroy($user);
             })->name('users.destroy');
-        });
+    });
 
         Route::prefix('internship-programs')->group(function () {
             Route::get('/', function () {
@@ -285,4 +292,7 @@ Route::middleware(['auth'])->group(function () {
             return app(InternshipProgramController::class)->destroy($internshipProgram);
         })->name('destroy');
     });
+
+    Route::get('/my-applications', [InternshipApplicationsController::class, 'studentIndex'])
+        ->name('application.student-index');
 });
