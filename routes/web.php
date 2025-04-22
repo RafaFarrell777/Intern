@@ -5,9 +5,11 @@ use App\Http\Controllers\InternshipApplicationsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InternshipProgramController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\InternshipTasksController;
 use Illuminate\Support\Facades\Route;
 use App\Models\InternshipApplications;
 use App\Models\InternshipProgram;
+use App\Models\InternshipTask;
 
 // Public routes
 Route::get('/login', [AuthController::class, 'login'])->name('auth.login');
@@ -31,16 +33,20 @@ Route::get('/program/{program}', function ($program) {
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
+    // Landing page route
+    Route::get('/', function () {
+        if (auth()->user()->role === 'magang') {
+            $programs = \App\Models\InternshipProgram::where('status', 'active')->get();
+            return view('landing', compact('programs'));
+        }
+        return redirect()->route('dashboard');
+    })->name('landing');
+    
+    // Dashboard route
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     // Admin routes (mentor only)
     Route::middleware(['auth'])->group(function () {
-        // Check if user is mentor
-        Route::get('/', function () {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(DashboardController::class)->index();
-        })->name('dashboard');
-        
         // Application management routes
         Route::prefix('application')->group(function () {
             Route::get('/', function () {
@@ -149,57 +155,131 @@ Route::middleware(['auth'])->group(function () {
                 }
                 return app(UserController::class)->destroy($user);
             })->name('users.destroy');
-    });
+        });
 
-        Route::prefix('internship-programs')->group(function () {
+        // Internship Programs Routes (Admin only)
+        Route::prefix('internship-programs')->name('internship-programs.')->group(function () {
             Route::get('/', function () {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(InternshipProgramController::class)->index();
-            })->name('internship-programs.index');
+            })->name('index');
             
             Route::get('/create', function () {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(InternshipProgramController::class)->create();
-            })->name('internship-programs.create');
+            })->name('create');
             
             Route::post('/', function () {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(InternshipProgramController::class)->store(request());
-            })->name('internship-programs.store');
+            })->name('store');
             
-            Route::get('/{internshipProgram}', function ($internshipProgram) {
+            Route::get('/{internshipProgram}', function (InternshipProgram $internshipProgram) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(InternshipProgramController::class)->show($internshipProgram);
-            })->name('internship-programs.show');
+            })->name('show');
             
-            Route::get('/{internshipProgram}/edit', function ($internshipProgram) {
+            Route::get('/{internshipProgram}/edit', function (InternshipProgram $internshipProgram) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(InternshipProgramController::class)->edit($internshipProgram);
-            })->name('internship-programs.edit');
+            })->name('edit');
             
             Route::put('/{internshipProgram}', function (InternshipProgram $internshipProgram) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(InternshipProgramController::class)->update(request(), $internshipProgram);
-            })->name('internship-programs.update');
+            })->name('update');
             
-            Route::delete('/{internshipProgram}', function ($internshipProgram) {
+            Route::delete('/{internshipProgram}', function (InternshipProgram $internshipProgram) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(InternshipProgramController::class)->destroy($internshipProgram);
-            })->name('internship-programs.destroy');
+            })->name('destroy');
+        });
+        
+        // Internship Tasks routes for mentors (admin)
+        Route::prefix('internship-tasks')->name('internship-tasks.')->group(function () {
+            Route::get('/', function () {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->index();
+            })->name('index');
+            
+            Route::get('/create', function () {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->create();
+            })->name('create');
+            
+            Route::post('/', function () {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->store(request());
+            })->name('store');
+            
+            Route::get('/{task}', function (InternshipTask $task) {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->show($task);
+            })->name('show');
+            
+            Route::get('/{task}/edit', function (InternshipTask $task) {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->edit($task);
+            })->name('edit');
+            
+            Route::put('/{task}', function (InternshipTask $task) {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->update(request(), $task);
+            })->name('update');
+            
+            Route::delete('/{task}', function (InternshipTask $task) {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->destroy($task);
+            })->name('destroy');
+            
+            Route::get('/{task}/review', function (InternshipTask $task) {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->reviewForm($task);
+            })->name('review.form');
+            
+            Route::post('/{task}/review', function (InternshipTask $task) {
+                if (auth()->user()->role !== 'mentor') {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->review(request(), $task);
+            })->name('review.submit');
+            
+            Route::get('/{task}/download', function (InternshipTask $task) {
+                if (auth()->user()->role !== 'mentor' && $task->application->siswa_id !== auth()->id()) {
+                    return redirect()->route('landing');
+                }
+                return app(InternshipTasksController::class)->downloadReport($task);
+            })->name('download');
         });
     });
 
@@ -224,75 +304,28 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/apply', [InternshipProgramController::class, 'apply'])->name('internship-programs.apply');
     });
 
-    // Landing page route
-    Route::get('/', function () {
-        if (auth()->user()->role === 'magang') {
-            $programs = \App\Models\InternshipProgram::where('status', 'active')->get();
-            return view('landing', compact('programs'));
-        }
-        return redirect()->route('dashboard');
-    })->name('landing');
-
-    // Dashboard route
-    Route::get('/dashboard', function () {
-        if (auth()->user()->role !== 'mentor') {
-            return redirect()->route('landing');
-        }
-        return view('dashboard');
-    })->name('dashboard');
-
-    // Internship Programs Routes (Admin only)
-    Route::prefix('internship-programs')->name('internship-programs.')->group(function () {
-        Route::get('/', function () {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(InternshipProgramController::class)->index();
-        })->name('index');
-        
-        Route::get('/create', function () {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(InternshipProgramController::class)->create();
-        })->name('create');
-        
-        Route::post('/', function () {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(InternshipProgramController::class)->store(request());
-        })->name('store');
-        
-        Route::get('/{internshipProgram}', function (InternshipProgram $internshipProgram) {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(InternshipProgramController::class)->show($internshipProgram);
-        })->name('show');
-        
-        Route::get('/{internshipProgram}/edit', function (InternshipProgram $internshipProgram) {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(InternshipProgramController::class)->edit($internshipProgram);
-        })->name('edit');
-        
-        Route::put('/{internshipProgram}', function (InternshipProgram $internshipProgram) {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(InternshipProgramController::class)->update(request(), $internshipProgram);
-        })->name('update');
-        
-        Route::delete('/{internshipProgram}', function (InternshipProgram $internshipProgram) {
-            if (auth()->user()->role !== 'mentor') {
-                return redirect()->route('landing');
-            }
-            return app(InternshipProgramController::class)->destroy($internshipProgram);
-        })->name('destroy');
-    });
-
     Route::get('/my-applications', [InternshipApplicationsController::class, 'studentIndex'])
         ->name('application.student-index');
+
+    // Internship Tasks routes for students
+    Route::get('/my-tasks', function () {
+        if (auth()->user()->role !== 'magang') {
+            return redirect()->route('landing');
+        }
+        return app(InternshipTasksController::class)->myTasks();
+    })->name('internship-tasks.my-tasks');
+    
+    Route::get('/my-tasks/{task}/submit', function (InternshipTask $task) {
+        if (auth()->user()->role !== 'magang') {
+            return redirect()->route('landing');
+        }
+        return app(InternshipTasksController::class)->submitForm($task);
+    })->name('internship-tasks.submit.form');
+    
+    Route::post('/my-tasks/{task}/submit', function (InternshipTask $task) {
+        if (auth()->user()->role !== 'magang') {
+            return redirect()->route('landing');
+        }
+        return app(InternshipTasksController::class)->submit(request(), $task);
+    })->name('internship-tasks.submit');
 });

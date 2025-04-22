@@ -55,6 +55,33 @@
         @endforeach
     @endif
 
+    <!-- Tasks Management -->
+    @if (Auth::user()->role === 'mentor')
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('internship-tasks.index') }}">
+                <i class="fas fa-tasks"></i>
+                <span>Tasks Management</span>
+            </a>
+        </li>
+    @endif
+
+    @if (Auth::user()->role === 'magang')
+        <!-- My Applications -->
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('application.student-index') }}">
+                <i class="fas fa-file-alt"></i>
+                <span>My Applications</span>
+            </a>
+        </li>
+        <!-- My Tasks -->
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('internship-tasks.my-tasks') }}">
+                <i class="fas fa-clipboard-list"></i>
+                <span>My Tasks</span>
+            </a>
+        </li>
+    @endif
+
     <hr class="sidebar-divider my-0">
 
     <!-- Nav Item - Dashboard -->
