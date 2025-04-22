@@ -53,7 +53,7 @@ Route::middleware(['auth'])->group(function () {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
-                return app(InternshipApplicationsController::class)->index();
+                return app(InternshipApplicationsController::class)->index(request());
             })->name('application.index');
             
             Route::get('/create', function () {
@@ -111,7 +111,7 @@ Route::middleware(['auth'])->group(function () {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
-                return app(UserController::class)->index();
+                return app(UserController::class)->index(request());
             })->name('users.index');
             
             Route::get('/create', function () {
@@ -128,28 +128,28 @@ Route::middleware(['auth'])->group(function () {
                 return app(UserController::class)->store(request());
             })->name('users.store');
             
-            Route::get('/{user}', function ($user) {
+            Route::get('/{user}', function (\App\Models\User $user) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(UserController::class)->show($user);
             })->name('users.show');
             
-            Route::get('/{user}/edit', function ($user) {
+            Route::get('/{user}/edit', function (\App\Models\User $user) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(UserController::class)->edit($user);
             })->name('users.edit');
             
-            Route::put('/{user}', function ($user) {
+            Route::put('/{user}', function (\App\Models\User $user) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
                 return app(UserController::class)->update(request(), $user);
             })->name('users.update');
             
-            Route::delete('/{user}', function ($user) {
+            Route::delete('/{user}', function (\App\Models\User $user) {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
@@ -163,7 +163,7 @@ Route::middleware(['auth'])->group(function () {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
-                return app(InternshipProgramController::class)->index();
+                return app(InternshipProgramController::class)->index(request());
             })->name('index');
             
             Route::get('/create', function () {
@@ -215,7 +215,7 @@ Route::middleware(['auth'])->group(function () {
                 if (auth()->user()->role !== 'mentor') {
                     return redirect()->route('landing');
                 }
-                return app(InternshipTasksController::class)->index();
+                return app(InternshipTasksController::class)->index(request());
             })->name('index');
             
             Route::get('/create', function () {
@@ -289,7 +289,7 @@ Route::middleware(['auth'])->group(function () {
             if (auth()->user()->role === 'magang') {
                 return redirect()->route('landing');
             }
-            return app(InternshipProgramController::class)->index();
+            return app(InternshipProgramController::class)->index(request());
         })->name('internship-programs.index');
         
         Route::get('/{program}', function ($program) {

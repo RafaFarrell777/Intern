@@ -3,17 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\InternshipApplications;
+use App\Models\InternshipTask;
+use App\Models\InternshipProgram;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of the users.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::all();
+        $query = User::query();
+        
+        // Search by name or email
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+        
+        // Filter by role
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+        
+        $users = $query->latest()->paginate(10);
+        
         return view('users.index', compact('users'));
     }
 
@@ -73,6 +95,9 @@ class UserController extends Controller
         ]);
 
         if ($request->filled('password')) {
+            $request->validate([
+                'password' => 'min:8',
+            ]);
             $validated['password'] = Hash::make($request->password);
         }
 
@@ -87,9 +112,83 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        $user->delete();
-
-        return redirect()->route('users.index')
-            ->with('success', 'User deleted successfully.');
+        // Prevent deleting self
+        if (auth()->id() === $user->id) {
+            return redirect()->route('users.index')
+                ->with('error', 'You cannot delete your own account.');
+        }
+        
+        try {
+            DB::beginTransaction();
+            
+            // Check if user is a student (magang) with applications
+            if ($user->isMagang()) {
+                // Get all applications of this user using the relationship
+                $applications = $user->applications;
+                
+                foreach ($applications as $application) {
+                    // Delete all tasks related to this application
+                    $tasks = InternshipTask::where('application_id', $application->id)->get();
+                    foreach ($tasks as $task) {
+                        $task->delete();
+                    }
+                    
+                    // Then delete the application
+                    $application->delete();
+                }
+            }
+            
+            // Check if user is a mentor with programs
+            if ($user->isMentor()) {
+                // Get programs using the relationship
+                $programs = $user->programs;
+                
+                if ($programs->count() > 0) {
+                    // Find another mentor
+                    $anotherMentor = User::where('role', 'mentor')
+                        ->where('id', '!=', $user->id)
+                        ->first();
+                    
+                    if ($anotherMentor) {
+                        // Reassign programs to another mentor
+                        foreach ($programs as $program) {
+                            $program->mentor_id = $anotherMentor->id;
+                            $program->save();
+                        }
+                    } else {
+                        // No other mentor, mark programs as inactive
+                        foreach ($programs as $program) {
+                            $program->status = 'inactive';
+                            $program->save();
+                        }
+                    }
+                }
+            }
+            
+            // Finally delete the user
+            $user->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('users.index')
+                ->with('success', 'User deleted successfully.');
+                
+        } catch (QueryException $e) {
+            DB::rollBack();
+            
+            // Check if it's a foreign key constraint issue
+            if ($e->getCode() == 23000) {
+                return redirect()->route('users.index')
+                    ->with('error', 'Cannot delete user. This user has related data that cannot be deleted automatically.');
+            }
+            
+            return redirect()->route('users.index')
+                ->with('error', 'An error occurred while deleting user: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return redirect()->route('users.index')
+                ->with('error', 'An error occurred while deleting user: ' . $e->getMessage());
+        }
     }
 }

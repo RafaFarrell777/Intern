@@ -1,11 +1,15 @@
 @extends('layouts.dashboard-layout')
 
+@section('title', 'Create User')
+
 @section('content')
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">Create New User</div>
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Create New User</h6>
+                </div>
 
                 <div class="card-body">
                     <form method="POST" action="{{ route('users.store') }}">
@@ -45,8 +49,8 @@
                             <label for="role" class="form-label">Role</label>
                             <select class="form-control @error('role') is-invalid @enderror" id="role" name="role" required>
                                 <option value="">Select Role</option>
-                                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                                <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
+                                <option value="mentor" {{ old('role') == 'mentor' ? 'selected' : '' }}>Mentor (Admin)</option>
+                                <option value="magang" {{ old('role') == 'magang' ? 'selected' : '' }}>Magang (Student)</option>
                             </select>
                             @error('role')
                                 <span class="invalid-feedback" role="alert">

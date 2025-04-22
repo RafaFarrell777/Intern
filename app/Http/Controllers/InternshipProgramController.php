@@ -12,9 +12,24 @@ class InternshipProgramController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request = null)
     {
-        $programs = InternshipProgram::with('mentor')->latest()->paginate(10);
+        $query = InternshipProgram::with('mentor');
+        
+        // Gunakan parameter request jika disediakan, jika tidak gunakan helper function request()
+        $req = $request ?: request();
+        
+        // Search by program title
+        if ($req->filled('search')) {
+            $query->where('title', 'like', '%' . $req->search . '%');
+        }
+        
+        // Filter by status
+        if ($req->filled('status')) {
+            $query->where('status', $req->status);
+        }
+        
+        $programs = $query->latest()->paginate(10);
         return view('internship-programs.index', compact('programs'));
     }
 

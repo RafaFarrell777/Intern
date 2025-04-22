@@ -12,11 +12,30 @@ class InternshipTasksController extends Controller
     /**
      * Display a listing of the tasks for mentors
      */
-    public function index()
+    public function index(Request $request = null)
     {
-        $tasks = InternshipTask::with(['application', 'application.siswa', 'application.program'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = InternshipTask::with(['application', 'application.siswa', 'application.program']);
+        
+        // Gunakan parameter request jika disediakan, jika tidak gunakan helper function request()
+        $req = $request ?: request();
+        
+        // Search by task title or student name
+        if ($req->filled('search')) {
+            $searchTerm = $req->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('title', 'like', '%' . $searchTerm . '%')
+                  ->orWhereHas('application.siswa', function($q) use ($searchTerm) {
+                      $q->where('name', 'like', '%' . $searchTerm . '%');
+                  });
+            });
+        }
+        
+        // Filter by status
+        if ($req->filled('status')) {
+            $query->where('status', $req->status);
+        }
+        
+        $tasks = $query->orderBy('created_at', 'desc')->paginate(10);
         
         return view('internship-tasks.index', compact('tasks'));
     }

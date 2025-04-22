@@ -13,20 +13,23 @@ class InternshipApplicationsController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request = null)
     {
         $query = InternshipApplications::with(['siswa', 'program']);
 
+        // Gunakan parameter request jika disediakan, jika tidak gunakan helper function request()
+        $req = $request ?: request();
+
         // Search by student name
-        if (request('search')) {
-            $query->whereHas('siswa', function($q) {
-                $q->where('name', 'like', '%' . request('search') . '%');
+        if ($req->filled('search')) {
+            $query->whereHas('siswa', function($q) use ($req) {
+                $q->where('name', 'like', '%' . $req->search . '%');
             });
         }
 
         // Filter by status
-        if (request('status')) {
-            $query->where('status', request('status'));
+        if ($req->filled('status')) {
+            $query->where('status', $req->status);
         }
 
         $applications = $query->latest()->paginate(10);
