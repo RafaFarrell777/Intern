@@ -25,7 +25,7 @@ class InternshipProgram extends Model
 
     protected $casts = [
         'start_date' => 'date',
-        'end_date' => 'date'
+        'end_date' => 'date',
     ];
 
     public function mentor()
@@ -35,6 +35,19 @@ class InternshipProgram extends Model
 
     public function applications()
     {
-        return $this->hasMany(InternshipApplication::class, 'program_id');
+        return $this->hasMany(InternshipApplications::class, 'program_id');
+    }
+
+    public function evaluations()
+    {
+        return $this->hasMany(Evaluation::class, 'program_id');
+    }
+
+    public function hasApplied($userId)
+    {
+        return $this->applications()
+            ->where('siswa_id', $userId)
+            ->where('program_id', $this->id)
+            ->exists();
     }
 }

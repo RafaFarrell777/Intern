@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\InternshipApplications;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Requests\UpdateInternshipApplicationsRequest;
+use App\Models\InternshipProgram;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class InternshipApplicationsController extends Controller
 {
@@ -17,8 +15,8 @@ class InternshipApplicationsController extends Controller
      */
     public function index()
     {
-        $applications = InternshipApplications::with('siswa')->latest()->paginate(10);
-        return view('application.table', compact('applications'));
+        $applications = InternshipApplications::with(['siswa', 'program'])->latest()->paginate(10);
+        return view('application.index', compact('applications'));
     }
 
     /**
@@ -26,91 +24,93 @@ class InternshipApplicationsController extends Controller
      */
     public function create()
     {
-        return view('application.add');
+        $programs = InternshipProgram::where('status', 'active')->get();
+        $students = User::where('role', 'magang')->get();
+        return view('application.create', compact('programs', 'students'));
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $req)
+    public function store(Request $request)
     {
-        if($req->hasFile('resume')) {
-            $file = $req->file('resume');
-            $mimeType = $file->getMimeType();
-            $resume = date('Ymd') . '0' . Auth::id();
+        $validated = $request->validate([
+            'siswa_id' => 'required|exists:users,id',
+            'program_id' => 'required|exists:internship_programs,id',
+            'resume' => 'required|file|mimes:pdf|max:2048',
+            'status' => 'required|in:pending,accepted,rejected'
+        ]);
 
-            if(Str::startsWith($mimeType, ['application/pdf', 'image', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'])) {
-                $insertResume = InternshipApplications::create([
-                    'siswa_id' => Auth::id(),
-                    'status' => 'pending',
-                    'resume' => $resume . '.' . $file->getClientOriginalExtension(),
-                ]);
-                $file->move(public_path('storage/assets'), $insertResume->resume);
-                return redirect()->route('application.table')->with('success','Success add application!');
-            }
-            return false;
-        }
-        return false;
+        $resumePath = $request->file('resume')->store('resumes', 'public');
+
+        InternshipApplications::create([
+            'siswa_id' => $validated['siswa_id'],
+            'program_id' => $validated['program_id'],
+            'resume' => $resumePath,
+            'status' => $validated['status']
+        ]);
+
+        return redirect()->route('application.index')
+            ->with('success', 'Application created successfully.');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(InternshipApplications $internshipApplications)
+    public function show(InternshipApplications $application)
     {
-        //
+        $application->load(['siswa', 'program']);
+        return view('application.show', compact('application'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Request $req, $id)
+    public function edit(InternshipApplications $application)
     {
-        $application = InternshipApplications::with('siswa')->where('id', '=', $id)->first();
-        if (!$application) {
-            return redirect()->back()->with('error', 'Application not found.');
-        }
+        $application->load(['siswa', 'program']);
         return view('application.edit', compact('application'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $req, $id)
+    public function update(Request $request, InternshipApplications $application)
     {
-        if($req->hasFile('resume')) {
-            $file = $req->file('resume');
-            $mimeType = $file->getMimeType();
-            $resume = date('Ymd') . '0' . Auth::id();
+        $validated = $request->validate([
+            'status' => 'required|in:pending,accepted,rejected'
+        ]);
 
-            $data = InternshipApplications::findOrFail($id);
+        $application->update($validated);
 
-            unlink('storage/assets/' . $data->resume);
-
-            if(Str::startsWith($mimeType, ['application/pdf', 'image', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'])) {
-                $updateResume = $data->update([
-                    'resume' => $resume . '.' . $file->getClientOriginalExtension(),
-                ]);
-                if ($updateResume) {
-                    $file->move(public_path('storage/assets'), $data->resume);
-                    return redirect()->route('application.table')->with('success','Success add application!');
-                } else {
-                    return false;
-                }
-            }
-            return false;
-        }
-        return false;
+        return redirect()->route('application.index')
+            ->with('success', 'Application updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, $id)
+    public function destroy(InternshipApplications $application)
     {
-        $data = InternshipApplications::findOrFail($id);
-        if($data->delete()) {
-            return redirect()->route('application.table')->with('success','Success delete application!');
+        if ($application->resume) {
+            Storage::disk('public')->delete($application->resume);
         }
+        
+        $application->delete();
+
+        return redirect()->route('application.index')
+            ->with('success', 'Application deleted successfully.');
+    }
+
+    /**
+     * Download the resume file.
+     */
+    public function downloadResume(InternshipApplications $application)
+    {
+        if (!Storage::disk('public')->exists($application->resume)) {
+            return redirect()->back()->with('error', 'Resume file not found.');
+        }
+
+        return Storage::disk('public')->download($application->resume);
     }
 }

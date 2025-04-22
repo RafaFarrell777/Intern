@@ -55,7 +55,10 @@
         </div>
 
         <div class="form-container w-full md:w-1/2 bg-white p-8 md:p-12">
-            <div class="flex justify-center mb-6">
+            <div class="flex justify-between items-center mb-6">
+                <a href="http://127.0.0.1:8000/landing" class="text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left mr-2"></i>Kembali ke Beranda
+                </a>
                 <img src="{{ asset('img/undraw_rocket.svg') }}" alt="InternConnect Logo" class="h-24">
             </div>
             <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Masuk ke Akun Anda</h2>
